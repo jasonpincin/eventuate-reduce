@@ -1,37 +1,13 @@
-module.exports = function mkReducedEventuate (eventuate, reduce, init) {
-    var lastValue = init
+var chainable = require('eventuate-chainable'),
+    producerFactory = require('./lib/producer-factory')
 
-    // create a new eventuate with the parent's setting
-    var reducedEventuate = eventuate.factory({ monitorConsumers: eventuate.hasConsumer !== undefined })
+module.exports = eventuateReduceFactory
+function eventuateReduceFactory (Super) {
+    var EventuateReduce = chainable(Super, producerFactory)
 
-    // expose to external sources
-    reducedEventuate.upstreamConsumer = reduceConsumer
-
-    // destroy upstream consumer
-    reducedEventuate.unsubscribe = function reducedEventuateUnsubscribe () {
-        eventuate.removeConsumer(reduceConsumer)
+    function eventuateReduce (upstream, options, reducer, init) {
+        return new EventuateReduce(upstream, options, reducer, init)
     }
-
-    reducedEventuate.reset = function reducedEventuateReset (resetValue) {
-        reducedEventuate.lastValue = lastValue = resetValue
-    }
-
-    // create new eventuate upstream consumer
-    eventuate(reduceConsumer)
-
-    return reducedEventuate
-
-    function reduceConsumer (data) {
-
-        if (typeof lastValue === 'undefined') {
-            reducedEventuate.lastValue = lastValue = data
-        }
-        else {
-            reducedEventuate.lastValue = lastValue = reduce(lastValue, data)
-
-            // act on original producers payload, and emit(produce) event
-            reducedEventuate.produce(lastValue)
-        }
-
-    }
+    eventuateReduce.constructor = EventuateReduce
+    return eventuateReduce
 }
